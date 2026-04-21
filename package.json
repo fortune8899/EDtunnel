@@ -6,7 +6,11 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "build": "wrangler deploy --dry-run",
-    "dev": "wrangler dev --remote"
+    "dev": "wrangler dev --remote",
+    "mock-api": "node backend/mock-api/server.js",
+    "mock-api:test": "node backend/mock-api/smoke-test.js",
+    "mock-api:export-sql": "node backend/mock-api/tools/export-sql.js",
+    "mock-api:init-mysql": "node backend/mock-api/tools/init-mysql.js"
   },
   "author": "",
   "license": "ISC",

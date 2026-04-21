@@ -1,0 +1,190 @@
+openapi: 3.0.3
+info:
+  title: Bid Expert Helper API
+  version: 1.0.0
+servers:
+  - url: /api/v1
+
+paths:
+  /eval-records:
+    post:
+      summary: 新增评标记录
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEvalRecordRequest'
+      responses:
+        '200':
+          description: OK
+    get:
+      summary: 评标记录列表查询
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: dateFrom
+          schema: { type: string, format: date }
+        - in: query
+          name: dateTo
+          schema: { type: string, format: date }
+        - in: query
+          name: settlementStatus
+          schema: { type: integer, enum: [0,1] }
+        - in: query
+          name: professionCode
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+
+  /eval-records/{id}:
+    get:
+      summary: 获取记录详情
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+    patch:
+      summary: 修改记录
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEvalRecordRequest'
+      responses:
+        '200':
+          description: OK
+    delete:
+      summary: 删除记录
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  /eval-records/{id}/settlement:
+    patch:
+      summary: 更新结算状态与打款信息
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSettlementRequest'
+      responses:
+        '200':
+          description: OK
+
+  /profession-dict/tree:
+    get:
+      summary: 获取专业树形字典
+      responses:
+        '200':
+          description: OK
+
+  /dashboard/year-overview:
+    get:
+      summary: 年度核心总览
+      parameters:
+        - in: query
+          name: year
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+  /dashboard/high-frequency-professions:
+    get:
+      summary: 高频专业排行榜
+      parameters:
+        - in: query
+          name: dateFrom
+          schema: { type: string, format: date }
+        - in: query
+          name: dateTo
+          schema: { type: string, format: date }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 5 }
+      responses:
+        '200':
+          description: OK
+
+  /dashboard/monthly-income-trend:
+    get:
+      summary: 月度收益与频次趋势
+      parameters:
+        - in: query
+          name: year
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: OK
+
+components:
+  schemas:
+    CreateEvalRecordRequest:
+      type: object
+      required:
+        - evalDate
+        - location
+        - projectName
+        - sourcePlatform
+        - roleInGroup
+        - professionCode
+        - expectedFee
+        - settlementStatus
+      properties:
+        evalDate: { type: string, format: date }
+        startTime: { type: string, example: '09:30:00' }
+        location: { type: string }
+        projectName: { type: string }
+        sourcePlatform: { type: string }
+        roleInGroup: { type: integer, enum: [1,2] }
+        professionCode: { type: string }
+        customProfession: { type: string }
+        summaryContent: { type: string }
+        riskNotes: { type: string }
+        expectedFee: { type: number, format: double }
+        actualPaidAmount: { type: number, format: double }
+        paidDate: { type: string, format: date }
+        settlementStatus: { type: integer, enum: [0,1] }
+
+    UpdateEvalRecordRequest:
+      allOf:
+        - $ref: '#/components/schemas/CreateEvalRecordRequest'
+
+    UpdateSettlementRequest:
+      type: object
+      required:
+        - settlementStatus
+      properties:
+        settlementStatus: { type: integer, enum: [0,1] }
+        actualPaidAmount: { type: number, format: double }
+        paidDate: { type: string, format: date }
