@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>评标专家助手 - MVP 演示版（阶段8）</title>
+  <style>
+    :root { --bg:#f5f7fb;--card:#fff;--text:#1f2937;--sub:#6b7280;--brand:#2563eb;--ok:#16a34a;--danger:#dc2626;--border:#e5e7eb; }
+    * { box-sizing:border-box } body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC",sans-serif }
+    .app { max-width:500px; margin:0 auto; min-height:100vh; padding-bottom:82px }
+    .header { position:sticky; top:0; z-index:2; background:#fff; border-bottom:1px solid var(--border); padding:14px 16px; font-weight:700 }
+    .view { display:none; padding:12px } .view.active { display:block }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; margin-bottom:10px }
+    .row { display:flex; justify-content:space-between; align-items:center; gap:8px }
+    .muted { color:var(--sub); font-size:12px }
+    .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:8px }
+    .kpi { background:#f9fafb; border:1px solid var(--border); border-radius:10px; padding:10px }
+    .kpi .l { color:var(--sub); font-size:12px } .kpi .v { margin-top:4px; font-size:20px; font-weight:700 }
+    .btn { border:none; border-radius:10px; padding:8px 12px; cursor:pointer; background:var(--brand); color:#fff }
+    .btn.secondary { background:#e5e7eb; color:#111827 } .btn.danger{background:var(--danger)} .btn.ok{background:var(--ok)}
+    .actions { display:flex; gap:6px; margin-top:8px; flex-wrap:wrap }
+    .input,.select,textarea { width:100%; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:14px; background:#fff }
+    .field { margin-bottom:10px } .field label { display:block; margin-bottom:4px; font-size:12px; color:var(--sub) }
+    textarea{min-height:68px;resize:vertical}
+    .chips{display:flex;flex-wrap:wrap;gap:6px}.chip{padding:3px 8px;border-radius:999px;font-size:12px;background:#eff6ff;color:#1d4ed8}
+    .record{border-top:1px solid var(--border);padding-top:8px;margin-top:8px}.record:first-child{border-top:none;margin-top:0;padding-top:0}
+    .tabs{position:fixed;left:0;right:0;bottom:0;max-width:500px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--border)}
+    .tab{text-align:center;padding:10px 4px;color:var(--sub);font-size:12px;cursor:pointer}.tab.active{color:var(--brand);font-weight:700}
+    .fab{position:fixed;right:16px;bottom:84px;width:52px;height:52px;border-radius:50%;border:none;background:var(--brand);color:#fff;font-size:28px;cursor:pointer}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:center}.modal.show{display:flex}
+    .panel{width:100%;max-width:500px;max-height:90vh;overflow:auto;background:#fff;border-radius:16px 16px 0 0;padding:12px}
+    .filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.error{color:var(--danger);font-size:12px;min-height:18px}
+    .bar-row{display:grid;grid-template-columns:68px 1fr 36px;gap:8px;align-items:center;margin-top:8px}
+    .bar{height:10px;background:#dbeafe;border-radius:999px;overflow:hidden}.bar>span{display:block;height:100%;background:var(--brand)}
+    .badge{padding:2px 8px;border-radius:999px;font-size:12px}.badge.local{background:#eef2ff;color:#3730a3}.badge.api{background:#ecfdf3;color:#166534}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="header" id="headerTitle">首页</div>
+
+  <section class="view active" id="homeView">
+    <div class="card row"><div><div style="font-weight:700">MVP 演示版</div><div class="muted" id="todayLabel"></div></div><button class="btn" onclick="openCreateModal()">+ 新增</button></div>
+    <div class="card stats" id="homeStats"></div>
+    <div class="card"><div class="row"><strong>最近记录</strong><span class="muted" id="recentCount"></span></div><div id="recentList"></div></div>
+  </section>
+
+  <section class="view" id="recordsView">
+    <div class="card"><div class="filter-grid"><input class="input" id="fLocation" placeholder="地点关键字" /><select class="select" id="fSpecFilter"><option value="">全部专业</option><option>A010101</option><option>A010102</option><option>A020201</option><option>B010101</option><option>C010101</option><option>OTHER</option></select><input class="input" id="fDateFrom" type="date" /><input class="input" id="fDateTo" type="date" /></div><div class="actions"><button class="btn secondary" onclick="resetFilters()">重置</button><button class="btn" onclick="renderRecords()">筛选</button></div></div>
+    <div class="card"><div class="row"><strong>记录列表</strong><span class="muted" id="recordTotal"></span></div><div id="recordsList"></div></div>
+  </section>
+
+  <section class="view" id="analyticsView">
+    <div class="card row"><strong>分析看板</strong><select class="select" style="width:120px" id="rangeSelect" onchange="renderAnalytics()"><option value="day">今日</option><option value="week" selected>本周</option><option value="month">本月</option><option value="year">本年</option></select></div>
+    <div class="card stats" id="analyticsStats"></div>
+    <div class="card"><div class="row"><strong>高频专业 Top5</strong><span class="muted">按抽取次数</span></div><div id="topSpecBars"></div></div>
+  </section>
+
+  <section class="view" id="meView">
+    <div class="card">
+      <div class="row"><strong>数据源模式</strong><span id="modeBadge" class="badge"></span></div>
+      <div class="field"><label>API Base URL</label><input class="input" id="apiBase" placeholder="http://localhost:8788/api/v1" /></div>
+      <div class="actions"><button class="btn secondary" onclick="useLocalMode()">本地模式</button><button class="btn ok" onclick="useApiMode()">API 模式</button><button class="btn" onclick="syncFromApi()">从 API 拉取</button></div>
+      <p class="muted">阶段8：分析页在 API 模式下优先调用后端统计接口。</p>
+    </div>
+    <div class="card"><div class="actions"><button class="btn" onclick="exportCSV()">导出 CSV</button><button class="btn danger" onclick="clearAll()">清空全部</button></div><p class="muted" id="statusText"></p></div>
+  </section>
+
+  <button class="fab" onclick="openCreateModal()">+</button>
+  <nav class="tabs"><div class="tab active" data-view="homeView" onclick="switchTab(this)">首页</div><div class="tab" data-view="recordsView" onclick="switchTab(this)">记录</div><div class="tab" data-view="analyticsView" onclick="switchTab(this)">分析</div><div class="tab" data-view="meView" onclick="switchTab(this)">我的</div></nav>
+</div>
+
+<div class="modal" id="editModal">
+  <div class="panel">
+    <div class="row" style="margin-bottom:8px"><strong id="modalTitle">新增记录</strong><button class="btn secondary" onclick="closeModal()">关闭</button></div>
+    <div class="field"><label>评标日期</label><input class="input" id="mDate" type="date"></div>
+    <div class="field"><label>评标地点</label><input class="input" id="mLocation"></div>
+    <div class="field"><label>项目名称</label><input class="input" id="mProject"></div>
+    <div class="field"><label>抽取平台</label><input class="input" id="mSource" value="市公共资源交易中心"></div>
+    <div class="field"><label>担任角色</label><select class="select" id="mRole"><option value="1">组长</option><option value="2" selected>组员</option></select></div>
+    <div class="field"><label>专业编码</label><select class="select" id="mSpec"><option>A010101</option><option>A010102</option><option>A020201</option><option>B010101</option><option>C010101</option><option>OTHER</option></select></div>
+    <div class="field" id="customProfessionField" style="display:none"><label>自定义专业</label><input class="input" id="mCustomProfession"></div>
+    <div class="field"><label>评标概述</label><textarea id="mSummary"></textarea></div>
+    <div class="field"><label>避坑注意点</label><textarea id="mNotes"></textarea></div>
+    <div class="field"><label>预计费用</label><input class="input" id="mExpectedFee" type="number" min="0" step="0.01"></div>
+    <div class="field"><label>是否已结款</label><select class="select" id="mSettlement"><option value="0" selected>未结</option><option value="1">已结</option></select></div>
+    <div class="field" id="paidAmountField" style="display:none"><label>实际打款金额</label><input class="input" id="mPaidAmount" type="number" min="0" step="0.01"></div>
+    <div class="field" id="paidDateField" style="display:none"><label>打款日期</label><input class="input" id="mPaidDate" type="date"></div>
+    <div class="error" id="mError"></div>
+    <div class="actions"><button class="btn secondary" onclick="fillSample()">填充示例</button><button class="btn" onclick="saveRecord()">保存</button></div>
+  </div>
+</div>
+
+<script>
+const KEY_RECORDS='bid_records_v3',KEY_MODE='data_mode',KEY_API_BASE='api_base';
+let records=[],editingId=null,dataMode=localStorage.getItem(KEY_MODE)||'local',apiBase=localStorage.getItem(KEY_API_BASE)||'http://localhost:8788/api/v1';
+
+const setStatus=(msg)=>document.getElementById('statusText').textContent=msg||'';
+const uid=()=> 'r_'+Math.random().toString(36).slice(2,9);
+const todayOffset=(d=0)=>{const x=new Date();x.setDate(x.getDate()+d);return x.toISOString().slice(0,10)};
+
+function updateModeUI(){document.getElementById('apiBase').value=apiBase;const b=document.getElementById('modeBadge');b.textContent=dataMode==='api'?'API 模式':'本地模式';b.className='badge '+(dataMode==='api'?'api':'local');}
+function useLocalMode(){dataMode='local';localStorage.setItem(KEY_MODE,dataMode);updateModeUI();setStatus('已切换本地模式');renderAnalytics();}
+function useApiMode(){apiBase=document.getElementById('apiBase').value.trim()||apiBase;dataMode='api';localStorage.setItem(KEY_MODE,dataMode);localStorage.setItem(KEY_API_BASE,apiBase);updateModeUI();setStatus('已切换 API 模式');renderAnalytics();}
+
+async function api(path,options={}){const res=await fetch(apiBase+path,{headers:{'Content-Type':'application/json'},...options});const json=await res.json();if(!res.ok||json.code!==0)throw new Error(json.message||'API error');return json.data;}
+
+async function syncFromApi(){if(dataMode!=='api')return setStatus('当前不是 API 模式');try{const d=await api('/eval-records?page=1&pageSize=200');records=d.list||[];persistLocal();renderAll();setStatus('已从 API 拉取 '+records.length+' 条');}catch(e){setStatus('拉取失败: '+e.message)}}
+
+function bootRecords(){const raw=localStorage.getItem(KEY_RECORDS);if(raw){try{records=JSON.parse(raw)}catch{records=[]}}if(!records.length){records=[{id:uid(),eval_date:todayOffset(-1),location:'福田区交易中心',project_name:'道路提升工程',source_platform:'市公共资源交易中心',role_in_group:1,profession_code:'A010101',custom_profession:null,summary_content:'完成技术标评审',risk_notes:'重点核验关键人员',expected_fee:1200,actual_paid_amount:null,paid_date:null,settlement_status:0}];persistLocal()}}
+const persistLocal=()=>localStorage.setItem(KEY_RECORDS,JSON.stringify(records));
+
+function switchTab(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));document.getElementById(el.dataset.view).classList.add('active');document.getElementById('headerTitle').textContent=el.textContent;if(el.dataset.view==='recordsView')renderRecords();if(el.dataset.view==='analyticsView')renderAnalytics();if(el.dataset.view==='meView')updateModeUI();}
+
+function openCreateModal(){editingId=null;document.getElementById('modalTitle').textContent='新增记录';document.getElementById('mError').textContent='';document.getElementById('mDate').value=todayOffset();document.getElementById('mLocation').value='';document.getElementById('mProject').value='';document.getElementById('mSource').value='市公共资源交易中心';document.getElementById('mRole').value='2';document.getElementById('mSpec').value='A010101';document.getElementById('mCustomProfession').value='';document.getElementById('mSummary').value='';document.getElementById('mNotes').value='';document.getElementById('mExpectedFee').value='';document.getElementById('mSettlement').value='0';document.getElementById('mPaidAmount').value='';document.getElementById('mPaidDate').value='';toggleDynamicFields();document.getElementById('editModal').classList.add('show');}
+function openEditModal(id){const r=records.find(x=>String(x.id)===String(id));if(!r)return;editingId=r.id;document.getElementById('modalTitle').textContent='编辑记录';document.getElementById('mError').textContent='';document.getElementById('mDate').value=r.eval_date;document.getElementById('mLocation').value=r.location;document.getElementById('mProject').value=r.project_name;document.getElementById('mSource').value=r.source_platform||'';document.getElementById('mRole').value=String(r.role_in_group||2);document.getElementById('mSpec').value=r.profession_code||'A010101';document.getElementById('mCustomProfession').value=r.custom_profession||'';document.getElementById('mSummary').value=r.summary_content||'';document.getElementById('mNotes').value=r.risk_notes||'';document.getElementById('mExpectedFee').value=r.expected_fee||'';document.getElementById('mSettlement').value=String(r.settlement_status||0);document.getElementById('mPaidAmount').value=r.actual_paid_amount||'';document.getElementById('mPaidDate').value=r.paid_date||'';toggleDynamicFields();document.getElementById('editModal').classList.add('show');}
+const closeModal=()=>document.getElementById('editModal').classList.remove('show');
+const showError=(msg)=>document.getElementById('mError').textContent=msg;
+function fillSample(){document.getElementById('mDate').value=todayOffset();document.getElementById('mLocation').value='市公共资源交易中心';document.getElementById('mProject').value='市政道路改造工程';document.getElementById('mSource').value='市公共资源交易中心';document.getElementById('mRole').value='1';document.getElementById('mSpec').value='A010102';document.getElementById('mSummary').value='完成技术与商务评审';document.getElementById('mNotes').value='重点核验业绩和关键人员';document.getElementById('mExpectedFee').value='1800';document.getElementById('mSettlement').value='0';toggleDynamicFields();}
+function toggleDynamicFields(){const spec=document.getElementById('mSpec').value,settle=document.getElementById('mSettlement').value;document.getElementById('customProfessionField').style.display=spec==='OTHER'?'block':'none';document.getElementById('paidAmountField').style.display=settle==='1'?'block':'none';document.getElementById('paidDateField').style.display=settle==='1'?'block':'none';}
+document.addEventListener('change',(e)=>{if(['mSpec','mSettlement'].includes(e.target.id))toggleDynamicFields();});
+
+async function saveRecord(){
+  const payload={eval_date:document.getElementById('mDate').value,location:document.getElementById('mLocation').value.trim(),project_name:document.getElementById('mProject').value.trim(),source_platform:document.getElementById('mSource').value.trim(),role_in_group:Number(document.getElementById('mRole').value),profession_code:document.getElementById('mSpec').value,custom_profession:document.getElementById('mCustomProfession').value.trim()||null,summary_content:document.getElementById('mSummary').value.trim(),risk_notes:document.getElementById('mNotes').value.trim(),expected_fee:Number(document.getElementById('mExpectedFee').value||0),settlement_status:Number(document.getElementById('mSettlement').value),actual_paid_amount:document.getElementById('mPaidAmount').value?Number(document.getElementById('mPaidAmount').value):null,paid_date:document.getElementById('mPaidDate').value||null};
+  if(!payload.eval_date||!payload.location||!payload.project_name||!payload.source_platform)return showError('请填写完整基础信息');
+  if(payload.profession_code==='OTHER'&&!payload.custom_profession)return showError('选择 OTHER 时请填写自定义专业');
+  if(!payload.expected_fee||payload.expected_fee<=0)return showError('请输入正确预计费用');
+  if(payload.settlement_status===1&&(!payload.actual_paid_amount||!payload.paid_date))return showError('已结款时请填写打款金额和日期');
+  try{
+    if(dataMode==='api'){if(editingId)await api(`/eval-records/${editingId}`,{method:'PATCH',body:JSON.stringify(payload)});else await api('/eval-records',{method:'POST',body:JSON.stringify(payload)});await syncFromApi();}
+    else{if(editingId)records=records.map(r=>String(r.id)===String(editingId)?{...r,...payload}:r);else records.unshift({id:uid(),...payload});persistLocal();renderAll();}
+    closeModal();setStatus('保存成功');
+  }catch(e){showError(e.message)}
+}
+
+async function deleteRecord(id){if(!confirm('确认删除该记录吗？'))return;try{if(dataMode==='api'){await api(`/eval-records/${id}`,{method:'DELETE'});await syncFromApi();}else{records=records.filter(r=>String(r.id)!==String(id));persistLocal();renderAll();}setStatus('删除成功');}catch(e){setStatus('删除失败: '+e.message)}}
+
+function resetFilters(){document.getElementById('fLocation').value='';document.getElementById('fSpecFilter').value='';document.getElementById('fDateFrom').value='';document.getElementById('fDateTo').value='';renderRecords();}
+function getFiltered(){const location=document.getElementById('fLocation').value.trim(),spec=document.getElementById('fSpecFilter').value,from=document.getElementById('fDateFrom').value,to=document.getElementById('fDateTo').value;return [...records].filter(r=>!location||r.location.includes(location)||r.project_name.includes(location)).filter(r=>!spec||r.profession_code===spec).filter(r=>!from||r.eval_date>=from).filter(r=>!to||r.eval_date<=to).sort((a,b)=>b.eval_date.localeCompare(a.eval_date));}
+function inRange(dateStr,range){const d=new Date(dateStr+'T00:00:00'),n=new Date(),now=new Date(n.getFullYear(),n.getMonth(),n.getDate());if(range==='day')return d.getTime()===now.getTime();if(range==='week'){const wd=now.getDay()||7;const s=new Date(now);s.setDate(now.getDate()-wd+1);const e=new Date(s);e.setDate(s.getDate()+6);return d>=s&&d<=e;}if(range==='month')return d.getFullYear()===now.getFullYear()&&d.getMonth()===now.getMonth();if(range==='year')return d.getFullYear()===now.getFullYear();return true;}
+function aggregate(range){const f=records.filter(r=>inRange(r.eval_date,range));const pending=f.reduce((s,r)=>s+(r.settlement_status===0?Number(r.expected_fee||0):0),0);const done=f.reduce((s,r)=>s+(r.settlement_status===1?Number(r.actual_paid_amount||0):0),0);const sp=new Set(f.map(x=>x.profession_code));return {count:f.length,pending,done,total:pending+done,specCount:sp.size}}
+function topSpecsLocal(range,limit=5){const m={};records.filter(r=>inRange(r.eval_date,range)).forEach(r=>m[r.profession_code]=(m[r.profession_code]||0)+1);return Object.entries(m).map(([spec,count])=>({spec,count})).sort((a,b)=>b.count-a.count).slice(0,limit)}
+const card=(l,v)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div></div>`;
+const rowTpl=(r)=>`<div class="record"><div class="row"><strong>${r.project_name}</strong><span class="muted">${r.eval_date}</span></div><div class="muted">${r.location}｜${r.source_platform||'-'}</div><div class="chips"><span class="chip">${r.profession_code}</span>${r.custom_profession?`<span class="chip">${r.custom_profession}</span>`:''}</div><div class="muted" style="margin-top:6px">${r.summary_content||''}</div><div class="row" style="margin-top:6px"><span class="muted">预计 / 实收</span><strong style="color:var(--ok)">¥${Number(r.expected_fee||0).toFixed(2)} / ¥${Number(r.actual_paid_amount||0).toFixed(2)}</strong></div><div class="actions"><button class="btn secondary" onclick="openEditModal('${r.id}')">编辑</button><button class="btn danger" onclick="deleteRecord('${r.id}')">删除</button></div></div>`;
+
+function renderHome(){document.getElementById('todayLabel').textContent=new Date().toLocaleDateString('zh-CN',{year:'numeric',month:'long',day:'numeric'});const d=aggregate('day'),w=aggregate('week'),m=aggregate('month');document.getElementById('homeStats').innerHTML=[card('今日评次',d.count),card('本周评次',w.count),card('本月待结算',`¥${m.pending.toFixed(2)}`),card('本月已到账',`¥${m.done.toFixed(2)}`)].join('');const recent=[...records].sort((a,b)=>b.eval_date.localeCompare(a.eval_date)).slice(0,3);document.getElementById('recentCount').textContent=`共 ${records.length} 条`;document.getElementById('recentList').innerHTML=recent.length?recent.map(rowTpl).join(''):'<p class="muted">暂无记录</p>';}
+function renderRecords(){const list=getFiltered();document.getElementById('recordTotal').textContent=`共 ${list.length} 条`;document.getElementById('recordsList').innerHTML=list.length?list.map(rowTpl).join(''):'<p class="muted">暂无匹配记录</p>'}
+
+async function renderAnalytics(){
+  const range=document.getElementById('rangeSelect').value;
+  if(dataMode==='api'){
+    try{
+      const year=new Date().getFullYear();
+      const [overview,top]=await Promise.all([
+        api(`/dashboard/year-overview?year=${year}`),
+        api('/dashboard/high-frequency-professions?limit=5')
+      ]);
+      document.getElementById('analyticsStats').innerHTML=[
+        card('本年评标次数',overview.total_eval_count||0),
+        card('本年已到账',`¥${Number(overview.received_amount||0).toFixed(2)}`),
+        card('本年待催款',`¥${Number(overview.pending_collection_amount||0).toFixed(2)}`),
+        card('当前记录数',records.length)
+      ].join('');
+      const max=top[0]?.count||1;
+      document.getElementById('topSpecBars').innerHTML=top.length?top.map(t=>`<div class="bar-row"><span class="muted">${t.profession_code}</span><div class="bar"><span style="width:${Math.max(8,t.count/max*100)}%"></span></div><strong>${t.count}</strong></div>`).join(''):'<p class="muted">暂无排行数据</p>';
+      setStatus('分析已使用后端统计接口');
+      return;
+    }catch(e){setStatus('后端统计失败，已回退本地计算: '+e.message);}
+  }
+  const d=aggregate(range);
+  document.getElementById('analyticsStats').innerHTML=[card('评标次数',d.count),card('总额',`¥${d.total.toFixed(2)}`),card('已到账',`¥${d.done.toFixed(2)}`),card('专业数',d.specCount)].join('');
+  const top=topSpecsLocal(range),max=top[0]?.count||1;
+  document.getElementById('topSpecBars').innerHTML=top.length?top.map(t=>`<div class="bar-row"><span class="muted">${t.spec}</span><div class="bar"><span style="width:${Math.max(8,t.count/max*100)}%"></span></div><strong>${t.count}</strong></div>`).join(''):'<p class="muted">当前范围无数据</p>';
+}
+
+function renderAll(){renderHome();renderRecords();renderAnalytics();updateModeUI();}
+function exportCSV(){const rows=[['评标日期','地点','项目名称','来源平台','角色','专业','自定义专业','概述','注意点','预计费用','实际打款','打款日期','结算状态']];getFiltered().forEach(r=>rows.push([r.eval_date,r.location,r.project_name,r.source_platform,r.role_in_group===1?'组长':'组员',r.profession_code,r.custom_profession||'',r.summary_content||'',r.risk_notes||'',r.expected_fee||0,r.actual_paid_amount||'',r.paid_date||'',r.settlement_status===1?'已结':'未结']));const csv=rows.map(x=>x.map(c=>`"${String(c).replaceAll('"','""')}"`).join(',')).join('\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`bid-records-${todayOffset()}.csv`;a.click();URL.revokeObjectURL(a.href)}
+function clearAll(){if(!confirm('确认清空全部数据？'))return;records=[];persistLocal();renderAll();setStatus('已清空（本地）')}
+
+bootRecords();renderAll();
+</script>
+</body>
+</html>

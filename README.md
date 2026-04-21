@@ -132,3 +132,74 @@ The path `/uuid your seetting` to get the clash config and vless:// link.
     <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=3Kmfi6HP/EDtunnel&type=Date" />
   </picture>
 </a>
+
+
+## Bid Expert Mini App Planning (WIP)
+
+Initial product artifacts for the bid expert recording and analytics mini app are available in `docs/bid-evaluation-miniapp/`:
+
+- `01-prd-mvp.md`: MVP product requirements
+- `02-information-architecture.md`: page structure and user flow
+- `03-data-model.sql`: initial database schema
+- `04-api-spec.md`: REST API draft
+- `05-ui-copy-and-validation.md`: UI copy and form validation rules
+- `prototype/index.html`: clickable interactive prototype (mobile-style)
+- `06-v1-sprint-plan.md`: sprint milestones and delivery definition
+- `07-v1-task-breakdown.md`: actionable frontend/backend/testing task list
+- `08-v1-acceptance-test-cases.md`: core acceptance test cases
+- `09-mvp-demo-completion.md`: current MVP demo completion summary
+- `10-backend-nestjs-blueprint.md`: backend implementation blueprint (NestJS + MySQL)
+- `11-openapi-v1.yaml`: OpenAPI contract draft for V1 endpoints
+- `12-phase6-frontend-api-integration.md`: frontend integration notes with mock-api
+- `13-phase7-mockapi-persistence.md`: mock-api persistence upgrade notes
+- `14-phase8-dashboard-api.md`: dashboard backend-statistics integration notes
+- `15-phase9-automation-smoke-test.md`: automated smoke-test integration notes
+- `16-phase10-store-abstraction.md`: storage abstraction notes for backend migration
+- `17-phase11-mysql-migration-bridge.md`: MySQL migration bridge via SQL export tool
+- `18-phase12-mysql-store-preview.md`: MySQL store integration preview notes
+- `19-phase13-mysql-init.md`: MySQL schema initialization and startup notes
+- `20-phase14-mysql-crud-ready.md`: MySQL mode CRUD and stats readiness notes
+
+Quick preview locally:
+
+```bash
+python3 -m http.server 4173
+# open http://localhost:4173/docs/bid-evaluation-miniapp/prototype/index.html
+```
+
+
+
+## Bid Expert Mock API (Phase 5)
+
+A zero-dependency mock backend is available for frontend integration:
+
+- `backend/mock-api/server.js`
+- `backend/mock-api/README.md`
+
+Run locally:
+
+```bash
+npm run mock-api
+# or: node backend/mock-api/server.js
+```
+
+Default base URL: `http://localhost:8788/api/v1`
+
+Smoke test:
+
+```bash
+npm run mock-api:test
+```
+
+Export SQL from mock data:
+
+```bash
+npm run mock-api:export-sql
+```
+
+Init MySQL schema:
+
+```bash
+npm run mock-api:init-mysql
+```
+
